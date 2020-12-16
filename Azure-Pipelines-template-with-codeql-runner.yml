@@ -1,0 +1,87 @@
+# This sample YAML file shows how to configure an Azure Pipeline to analyze a repository using the CodeQL Runner
+# The example assumes a C# application built using Visual Studio Build
+
+trigger:
+    branches:
+        include:
+        - '*'
+    paths:
+        exclude:
+        - test/*
+        - doc/*
+        - lib/*
+        include:
+        - src/*
+  resources:
+      repositories:
+      - repository: templates
+          type: github
+          name: octo-org/MyDevOpsTemplates
+          endpoint: octo-org
+
+variables:
+- name: msbuildArgs
+    value: /p:OutDir=$(Build.ArtifactStagingDirectory) /p:UseSharedCompilation=false
+
+stages:
+- stage: __default
+    jobs:
+    - job: Job
+        workspace:
+            clean: all
+        steps:
+
+        # Initialize the CodeQL Runner
+        # Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token. In this case, stored in a variable MyGitHubToken
+        # In this example, the CodeQL CLI has been predownloaded and placed in a directory on the runner. If --codeql-path is ommitted, the runner will automatically download the CodeQL CLI
+        # Full documentation for init step: https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-codeql-code-scanning-in-your-ci-system#init
+        # In this example, the security-and-quality suite is used, which includes both security queries and code quality queries
+        - task: CmdLine@1
+            displayName: CodeQL Initialization
+            inputs:
+                script: "%CodeQLRunner%\\codeql-runner-win.exe init --repository octo-org/example-repo-2 --github-url https://github.com --github-auth $(MyGitHubToken) --codeql-path %CodeQLRunner%\\Bundle\\codeql\\codeql.exe --queries security-and-quality"
+
+        # Set the generated environment variables so they are available for subsequent commands
+        # We use a simple PowerShell script to set the appropriate variables required for Azure Pipelines
+        - task: PowerShell@1
+            displayName: Set CodeQL Environment Variables
+            inputs:
+                targetType: inline
+                script: >
+                    $json = Get-Content $(System.DefaultWorkingDirectory)/codeql-runner/codeql-env.json | ConvertFrom-Json
+                    $json.PSObject.Properties | ForEach-Object {
+                        $template = "##vso[task.setvariable variable="
+                        $template += $_.Name
+                        $template += "]"
+                        $template += $_.Value
+                        echo "$template"
+                    }
+
+        # It is often required to perform certain pre-build tasks prior to executing the build. In this example, we restore our NuGet dependencies
+        - task: NuGetCommand@1
+            condition: and(succeeded(), eq('', ''))
+            inputs:
+                command: restore
+                restoreSolution: '**/*.sln'
+            displayName: Restore NuGet Dependencies
+
+        # Execute the build. Note the msbuildArgs variable, which is configured above. We execute a clean build, in order to remove any existing build-artifacts prior to the build
+        - task: VSBuild@1
+            inputs:
+                solution: '**/*.sln'
+                msbuildArgs: $(msbuildArgs)
+                platform: Any CPU
+                configuration: Release
+                clean: True
+            displayName: Visual Studio Build
+
+        # Analyze the snapshot database created as part of the build, by running the selected queries against it
+        # Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token. In this case, stored in a variable MyGitHubToken
+        # Full documentation for analyze step: https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-codeql-code-scanning-in-your-ci-system#analyze
+        # Once the analysis is done, the results will be uploaded to GitHub  
+        - task: CmdLine@2
+            displayName: CodeQL Analyze
+            inputs:
+                script: '%CodeQLRunner%\codeql-runner-win.exe analyze --repository octo-org/example-repo-2 --commit $(Build.SourceVersion) --ref $(Build.SourceBranch) --github-url https://github.com --github-auth $(MyGitHubToken)'
+
+        # Other tasks go here

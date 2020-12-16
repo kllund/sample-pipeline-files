@@ -1,0 +1,78 @@
+/* 
+    This sample Jenkinsfile shows how to configure a Jenkins pipeline to analyze a repository using the CodeQL Runner
+    The example assumes a simple Java application built using Maven
+*/
+
+pipeline {
+
+    agent { label 'run-codeql-analysis' }
+
+    environment {
+        ...
+    }
+
+    options {
+        ...
+    }
+
+    stages {
+        // Clone repository
+        stage('Clone Repository') {
+            git url: 'https://github.com/octo-org/example-repo-2.git'
+        }    
+
+        // Initialize the CodeQL Runner
+        // Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
+        // Full documentation for init step: https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-codeql-code-scanning-in-your-ci-system#init
+        // In this example, the security-and-quality suite is used, which includes both security queries and code quality queries
+        stage('CodeQL Initialization') {
+            steps {
+                sh '/path/to-runner/codeql-runner-linux init --repository octo-org/example-repo-2 --github-url https://github.com --github-auth TOKEN --queries security-and-quality'
+            }
+        }
+
+        // Set the generated environment variables so they are available for subsequent commands
+        // Note that we are sourcing the script using '. /path/to/script.sh'. This is DIFFERENT than executing the script using './path/to/script.sh'
+        // Executing the script would do so in a new shell, and any variables set in that shell would not be available in subsequent calls in our current shell
+        // By sourcing the script, all variables are set in our current shell, and will be available for later stages
+        stage('Set CodeQL Environment Variables') {
+            steps {
+                sh '. /srv/checkout/myrepository/codeql-runner/codeql-env.sh'
+            }
+        }
+
+        // Building the code - Two examples
+
+        // Example 1: Use the AutoBuilder
+        // The CodeQL Runner comes with a sopfisticated AutoBuilder, which attempts to build the code based on files in the repository
+        // Full documentation for autobuild step: https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-codeql-code-scanning-in-your-ci-system#autobuild
+        stage('AutoBuild') {
+            steps {
+                sh '/path/to-runner/codeql-runner-linux autobuild --language java'
+            }
+        }
+
+        // Example 2: Providing manual build command
+        // Alternatively, we can run the build command to compile the code. In this example, we have a simple maven project with a pom.xml in the root of the repository, and a settings file in a subdirectory
+        // For Code Scanning purposes, we only need to compile the code. As such, we disable executing our test suite. This can be changed according to your needs        
+        stage('Maven Build') {
+            steps {
+                sh 'mvn clean install -DskipTests=true -s settings/settings.xml'
+            }
+        }
+
+        // Analyze the snapshot database created as part of the build, by running the selected queries against it
+        // Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
+        // Full documentation for analyze step: https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-codeql-code-scanning-in-your-ci-system#analyze
+        // Once the analysis is done, the results will be uploaded to GitHub
+        stage('CodeQL Initialization') {
+            steps {
+                sh '/path/to-runner/codeql-runner-linux analyze --repository octo-org/example-repo-2 --github-url https://github.com --github-auth TOKEN --commit ae7b655ef30b50fb726ae7b3daa79571a39d194d --ref refs/heads/main'
+            }
+        }
+
+        // Other stages go here
+
+    }
+
+}

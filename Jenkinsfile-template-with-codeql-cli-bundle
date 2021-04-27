@@ -60,6 +60,7 @@ pipeline {
         // For context, please see https://docs.github.com/en/rest/reference/code-scanning#upload-an-analysis-as-sarif-data
         // A GitHub Apps token or personal access token must be set. For best security practices, it is recommended to set the --github-auth-stdin flag and pass the token to the command through standard input. Alternatively, the GITHUB\_TOKEN environment variable can be set.
         // This token must have the security\_events scope.
+        // Documentation for creating GitHub Apps or Personal Access Tokens are available here: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
         // Full documentation for github upload-results step: https://codeql.github.com/docs/codeql-cli/manual/github-upload-results/
         stage('Upload results to GitHub') {
             steps {

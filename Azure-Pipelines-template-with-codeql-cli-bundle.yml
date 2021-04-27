@@ -1,0 +1,75 @@
+# This sample YAML file shows how to configure an Azure Pipeline to analyze a repository using the CodeQL CLI Bundle
+
+trigger:
+    branches:
+        include:
+        - '*'
+    paths:
+        exclude:
+        - test/*
+        - doc/*
+        - lib/*
+        include:
+        - src/*
+  resources:
+      repositories:
+      - repository: templates
+          type: github
+          name: octo-org/MyDevOpsTemplates
+          endpoint: octo-org
+
+stages:
+- stage: __default
+    jobs:
+    - job: Job
+        workspace:
+            clean: all
+        steps:
+
+        # OPTIONAL: Download CodeQL CLI Bundle
+        # The CodeQL bundle (containing the CodeQL CLI as well as the pre-compiled CodeQL Query Suites, which is recommended for CI/CD integration) can either be download as par of the pipeline,
+        # or pre-downloaded and placed on the CI/CD build machine(s). If pre-downloading, replace %CodeQLBundle% in subsequent stages with the absolute path to the download location.
+        # In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from https://github.com/github/codeql-action/releases.
+        - task: PowerShell@1
+            displayName: Download CodeQL CLI Bundle
+            inputs:
+                targetType: inline
+                script: >
+                    mkdir codeql
+                    cd codeql; wget "https://github.com/github/codeql-action/releases/download/codeql-bundle-20210421/codeql-bundle-win64.tar.gz" -outfile "codeql-bundle-win64.tar.gz"
+                    tar xvzf codeql-bundle-win64.tar.gz codeql
+            }
+        }
+
+        # Create CodeQL Database
+        # Create a CodeQL database for a source tree that can be analyzed using one of the CodeQL products.
+        # Note that if the --command flag is omitted for compiled languages, the AutoBuilder will be used.
+        # Full documentation for database create step: https://codeql.github.com/docs/codeql-cli/manual/database-create/
+        - task: CmdLine@1
+            displayName: Create CodeQL Database
+            inputs:
+                script: "%CodeQLBundle%\\codeql\\codeql.exe database create --language=<lang> [--source-root=<dir>] [--threads=<num>] [--command=<command>] [--mode=<mode>] <options>... [--] <database>"
+
+        # Analyze CodeQL Database
+        # Analyze a CodeQL database, producing meaningful results in the context of the source code.
+        # Run a query suite (or some individual queries) against a CodeQL database, producing results, styled as alerts or paths, in SARIF or another interpreted format.
+        # Note that the suite argument can accept one of the pre-compiled, out-of-the-box query suites: code-scanning, security-extended, or security-and-quality
+        # Full documentation for database analyze step: https://codeql.github.com/docs/codeql-cli/manual/database-analyze/
+        - task: CmdLine@2
+            displayName: Analyze CodeQL Database
+            inputs:
+                script: "%CodeQLBundle%\\codeql\\codeql.exe database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... [--] <database> <query|dir|suite>..."
+
+        # Upload results to GitHub
+        # Uploads a SARIF file to GitHub code scanning.
+        # For context, please see https://docs.github.com/en/rest/reference/code-scanning#upload-an-analysis-as-sarif-data
+        # A GitHub Apps token or personal access token must be set. For best security practices, it is recommended to set the --github-auth-stdin flag and pass the token to the command through standard input. Alternatively, the GITHUB\_TOKEN environment variable can be set.
+        # This token must have the security\_events scope.
+        # Documentation for creating GitHub Apps or Personal Access Tokens are available here: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
+        # Full documentation for github upload-results step: https://codeql.github.com/docs/codeql-cli/manual/github-upload-results/
+        - task: CmdLine@3
+            displayName: Upload results to GitHub
+            inputs:
+                script: "%CodeQLBundle%\\codeql\\codeql.exe github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>..."
+
+        # Other tasks go here

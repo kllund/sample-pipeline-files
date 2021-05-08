@@ -27,10 +27,11 @@ pipeline {
         stage('Download CodeQL CLI Bundle') {
             steps {
                 sh 'mkdir codeql'
-                sh 'cd codeql && wget https://github.com/github/codeql-action/releases/download/codeql-bundle-20210421/codeql-bundle-linux64.tar.gz'
+                sh 'cd codeql && wget https://github.com/github/codeql-action/releases/download/codeql-bundle-20210430/codeql-bundle-linux64.tar.gz'
                 sh 'tar xvzf codeql-bundle-linux64.tar.gz codeql'
                 sh 'cd codeql && chmod +x codeql'
                 // Make a note of the current directory here and use that for /path/to/cli in subsequent stages
+                // You can add the extracted codeql bundle to your PATH. Ex: PATH=/path/to/cli:$PATH
             }
         }
 
@@ -41,6 +42,7 @@ pipeline {
         stage('Create CodeQL Database') {
             steps {
                 sh '/path/to/cli/codeql database create --language=<lang> [--source-root=<dir>] [--threads=<num>] [--command=<command>] [--mode=<mode>] <options>... [--] <database>'
+                // example: sh 'codeql database create /codeql-dbs/repo-db --language=javascript --source-root /checkouts/my-repo'             
             }
         }
 
@@ -52,6 +54,7 @@ pipeline {
         stage('Analyze CodeQL Database') {
             steps {
                 sh '/path/to/cli/codeql database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... [--] <database> <query|dir|suite>...'
+                // example: sh 'codeql database analyze /codeql-dbs/repo-db javascript-security-and-quality.qls --format=sarif-latest --output=./temp/results-js.sarif                 
             }
         }
 
@@ -65,6 +68,7 @@ pipeline {
         stage('Upload results to GitHub') {
             steps {
                 sh '/path/to/cli/codeql github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>...'
+                // example: sh 'codeql  github upload --repository=my-org/my-repo --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718 --sarif=./temp/results-js.sarif --github-url=https://octodemo-enterprise.com/ --github-auth-stdin'
             }
         }
 

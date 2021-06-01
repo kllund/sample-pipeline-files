@@ -1,0 +1,48 @@
+version: 2.1
+jobs:
+  clone-repository:
+    docker:
+      - image: 'cimg/base:2021.05'
+    steps:
+      - checkout
+  codeql-initialization:
+    docker:
+      - image: 'cimg/base:2021.05'
+    steps:
+      - run:
+          command: '/path/to-runner/codeql-runner-linux init --repository octo-org/example-repo-2 --github-url https://github.com --github-auth TOKEN --queries security-and-quality'
+  generate-env-vars:
+    docker:
+      - image: 'cimg/base:2021.05'
+    steps:
+      - run:
+          command: . /srv/checkout/myrepository/codeql-runner/codeql-env.sh
+  build:
+    docker:
+      - image: 'cimg/base:2021.05'
+    steps:
+      - run:
+          command: /path/to-runner/codeql-runner-linux autobuild --language java
+  analyze-code:
+    docker:
+      - image: 'cimg/base:2021.05'
+    steps:
+      - run:
+          command: '/path/to-runner/codeql-runner-linux analyze --repository octo-org/example-repo-2 --github-url https://github.com --github-auth TOKEN --commit << pipeline.git.tag >> --ref refs/heads/main'
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - clone-repository
+      - codeql-initialization:
+          requires:
+            - clone-repository
+      - generate-env-vars:
+          requires:
+            - codeql-initialization
+      - build:
+          requires:
+            - generate-env-vars
+      - analyze-code:
+          requires:
+            - build

@@ -37,7 +37,7 @@ jobs:
           # Note that if the --command flag is omitted for compiled languages, the AutoBuilder will be used.
           # Full documentation for database create step: https://codeql.github.com/docs/codeql-cli/manual/database-create/
           name: Create CodeQL Database
-          # command: ''/path/to/cli/codeql database create --language=<lang> [--source-root=<dir>] [--threads=<num>] [--command=<command>] [--mode=<mode>] <options>... [--] <database>''
+          # REF command: ''/path/to/cli/codeql database create --language=<lang> [--source-root=<dir>] [--threads=<num>] [--command=<command>] [--mode=<mode>] <options>... [--] <database>''
           command: |
             mkdir codeql-dbs
             ./codeql/codeql/codeql database create /home/circleci/project/codeql-dbs/repo-db --language=javascript --source-root /home/circleci/project/
@@ -48,8 +48,10 @@ jobs:
           # Note that the suite argument can accept one of the pre-compiled, out-of-the-box query suites: code-scanning, security-extended, or security-and-quality
           # Full documentation for database analyze step: https://codeql.github.com/docs/codeql-cli/manual/database-analyze/
           name: Analyze CodeQL Database
-          # command: '/path/to/cli/codeql database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... [--] <database> <query|dir|suite>...'
-          command: './codeql/codeql/codeql database analyze /home/circleci/project/codeql-dbs/repo-db javascript-security-and-quality.qls --format=sarif-latest --output=./temp/results-js.sarif'                       
+          # REF command: '/path/to/cli/codeql database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... [--] <database> <query|dir|suite>...'
+          command: |
+            cd codeql && cd codeql && mkdir temp
+            ./codeql database analyze /home/circleci/project/codeql-dbs/repo-db javascript-security-and-quality.qls --format=sarif-latest --output=./temp/results-js.sarif                       
       - run:
           # Uploads a SARIF file to GitHub code scanning.
           # For context, please see https://docs.github.com/en/rest/reference/code-scanning#upload-an-analysis-as-sarif-data
@@ -59,8 +61,8 @@ jobs:
           # Full documentation for github upload-results step: https://codeql.github.com/docs/codeql-cli/manual/github-upload-results/
           # Upload results to GitHub
           name: Upload results to GitHub
-          # command: '/path/to/cli/codeql github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>...'
-          command: 'echo $GITHUB_TOKEN | ./codeql/codeql/codeql github upload --repository=org/repo-name --ref=refs/heads/main --commit=$CIRCLE_SHA1 --sarif=./temp/results-js.sarif --github-url=https://github.com/ --github-auth-stdin'
+          # REF command: '/path/to/cli/codeql github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>...'
+          command: 'echo $GITHUB_TOKEN | ./codeql/codeql/codeql github upload-results --repository=org/example-app --ref=refs/heads/main --commit=$CIRCLE_SHA1 --sarif=./codeql/codeql/temp/results-js.sarif --github-url=https://github.com/ --github-auth-stdin'
 workflows:
   version: 2
   codeql-analysis:

@@ -32,7 +32,7 @@ jobs:
           command: 'echo $GITHUB_TOKEN | ./codeql-runner-linux init --repository octo-org/example-repo-2 --github-url https://github.com --queries security-and-quality --github-auth-stdin'
       - run:
           # Set the generated environment variables so they are available for subsequent commands
-          # This script created as part of the ./codeql-runner-linux init step and referenced here
+          # This script created as part of the ./codeql-runner-linux init step and referenced in init logs
           name: Set CodeQL Runner BUILD environment variables # REMOVE this step if you are not scanning any compiled languages (ex. Java) and only scanning scripting languages (ex. JavaScript)
           command: '. /home/circleci/project/codeql-runner/codeql-env.sh'
       - run:

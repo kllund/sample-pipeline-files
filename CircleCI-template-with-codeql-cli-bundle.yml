@@ -51,7 +51,7 @@ jobs:
           # REF command: '/path/to/cli/codeql database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... [--] <database> <query|dir|suite>...'
           command: |
             cd codeql && cd codeql && mkdir temp
-            ./codeql database analyze /home/circleci/project/codeql-dbs/repo-db javascript-security-and-quality.qls --format=sarif-latest --output=./temp/results-js.sarif                       
+            ./codeql database analyze /home/circleci/project/codeql-dbs/repo-db javascript-security-extended.qls --format=sarif-latest --output=./temp/results-js.sarif                       
       - run:
           # Uploads a SARIF file to GitHub code scanning.
           # For context, please see https://docs.github.com/en/rest/reference/code-scanning#upload-an-analysis-as-sarif-data

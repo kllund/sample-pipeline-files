@@ -29,7 +29,7 @@ jobs:
           # Full documentation for init step: https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-codeql-code-scanning-in-your-ci-system#init
           # In this example, the security-and-quality suite is used, which includes both security queries and code quality queries
           name: Initialize CodeQL Runner
-          command: 'echo $GITHUB_TOKEN | ./codeql-runner-linux init --repository octo-org/example-repo-2 --github-url https://github.com --queries security-and-quality --github-auth-stdin'
+          command: 'echo $GITHUB_TOKEN | ./codeql-runner-linux init --repository octo-org/example-repo-2 --github-url https://github.com --queries security-extended --github-auth-stdin'
       - run:
           # Set the generated environment variables so they are available for subsequent commands
           # This script created as part of the ./codeql-runner-linux init step and referenced in init logs

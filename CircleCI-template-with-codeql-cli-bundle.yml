@@ -1,0 +1,68 @@
+# This sample config.yml shows how to configure a CircleCI workflow to analyze a repository using the CodeQL CLI
+# The example assumes a simple javascript application built using node
+
+# Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token stored as pipeline variable GITHUB_TOKEN
+# Currently this workflow runs on commit, you will need to setup triggers for workflow to run on certain branches, PR, scheduled, etc.
+
+# GitHub Docs "Running CodeQL CLI in your CI System" - https://docs.github.com/en/code-security/secure-coding/using-codeql-code-scanning-with-your-existing-ci-system/running-codeql-cli-in-your-ci-system
+
+orbs: # declare what orbs we are going to use
+  node: circleci/node@4.5.0 # the node orb provides common node-related configuration
+
+version: 2.1
+jobs:
+  codeql:
+    docker:
+      - image: 'cimg/base:2021.05'
+    resource_class: xlarge # https://circleci.com/docs/2.0/configuration-reference/#docker-executor
+    steps:
+      - checkout # Checkout codebase
+      - node/install
+      - run:
+          # OPTIONAL: Download CodeQL CLI Bundle
+          # The CodeQL bundle (containing the CodeQL CLI as well as the pre-compiled CodeQL Query Suites, which is recommended for CI/CD integration) can either be download as par of the pipeline,
+          # or pre-downloaded and placed on the CI/CD build machine(s). If pre-downloading, replace /path/to/cli in subsequent stages with the absolute path to the download location.
+          # In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from https://github.com/github/codeql-action/releases.
+          name: Download CodeQL CLI
+          command: |
+            mkdir codeql
+            cd codeql && wget https://github.com/github/codeql-action/releases/download/codeql-bundle-20210430/codeql-bundle-linux64.tar.gz
+            tar xvzf codeql-bundle-linux64.tar.gz 
+            cd codeql && chmod +x codeql
+          # Make a note of the current directory here and use that for /path/to/cli in subsequent stages
+          # You can add the extracted codeql bundle to your PATH. Ex: PATH=/path/to/cli:$PATH
+      - run:
+          # Create CodeQL Database
+          # Create a CodeQL database for a source tree that can be analyzed using one of the CodeQL products.
+          # Note that if the --command flag is omitted for compiled languages, the AutoBuilder will be used.
+          # Full documentation for database create step: https://codeql.github.com/docs/codeql-cli/manual/database-create/
+          name: Create CodeQL Database
+          # command: ''/path/to/cli/codeql database create --language=<lang> [--source-root=<dir>] [--threads=<num>] [--command=<command>] [--mode=<mode>] <options>... [--] <database>''
+          command: |
+            mkdir codeql-dbs
+            ./codeql/codeql/codeql database create /home/circleci/project/codeql-dbs/repo-db --language=javascript --source-root /home/circleci/project/
+      - run:
+          # Analyze CodeQL Database
+          # Analyze a CodeQL database, producing meaningful results in the context of the source code.
+          # Run a query suite (or some individual queries) against a CodeQL database, producing results, styled as alerts or paths, in SARIF or another interpreted format.
+          # Note that the suite argument can accept one of the pre-compiled, out-of-the-box query suites: code-scanning, security-extended, or security-and-quality
+          # Full documentation for database analyze step: https://codeql.github.com/docs/codeql-cli/manual/database-analyze/
+          name: Analyze CodeQL Database
+          # command: '/path/to/cli/codeql database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... [--] <database> <query|dir|suite>...'
+          command: './codeql/codeql/codeql database analyze /home/circleci/project/codeql-dbs/repo-db javascript-security-and-quality.qls --format=sarif-latest --output=./temp/results-js.sarif'                       
+      - run:
+          # Uploads a SARIF file to GitHub code scanning.
+          # For context, please see https://docs.github.com/en/rest/reference/code-scanning#upload-an-analysis-as-sarif-data
+          # A GitHub Apps token or personal access token must be set. For best security practices, it is recommended to set the --github-auth-stdin flag and pass the token to the command through standard input. Alternatively, the GITHUB\_TOKEN environment variable can be set.
+          # This token must have the security\_events scope.
+          # Documentation for creating GitHub Apps or Personal Access Tokens are available here: https:#docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
+          # Full documentation for github upload-results step: https://codeql.github.com/docs/codeql-cli/manual/github-upload-results/
+          # Upload results to GitHub
+          name: Upload results to GitHub
+          # command: '/path/to/cli/codeql github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>...'
+          command: 'echo $GITHUB_TOKEN | ./codeql/codeql/codeql github upload --repository=org/repo-name --ref=refs/heads/main --commit=$CIRCLE_SHA1 --sarif=./temp/results-js.sarif --github-url=https://github.com/ --github-auth-stdin'
+workflows:
+  version: 2
+  codeql-analysis:
+    jobs:
+      - codeql

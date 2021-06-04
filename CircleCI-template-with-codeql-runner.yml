@@ -34,7 +34,7 @@ jobs:
           # Set the generated environment variables so they are available for subsequent commands
           # This script created as part of the ./codeql-runner-linux init step and referenced in init logs
           name: Set CodeQL Runner BUILD environment variables # REMOVE this step if you are not scanning any compiled languages (ex. Java) and only scanning scripting languages (ex. JavaScript)
-          command: '. /home/circleci/project/codeql-runner/codeql-env.sh'
+          command: '. ${CIRCLE_WORKING_DIRECTORY}/codeql-runner/codeql-env.sh'
       - run:
           # Example 1: Use the AutoBuilder
           # The CodeQL Runner comes with a sopfisticated AutoBuilder, which attempts to build the code based on files in the repository

@@ -1,0 +1,64 @@
+# This sample config.yml shows how to configure a CircleCI workflow to analyze a repository using the CodeQL Runner
+# The example assumes a simple Java application built using Maven
+
+# Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token stored as pipeline variable GITHUB_TOKEN
+# Currently this workflow runs on commit, you will need to setup triggers for workflow to run on certain branches, PR, scheduled, etc.
+
+# GitHub Docs "Running CodeQL Runner in your CI system" - https://docs.github.com/en/code-security/secure-coding/using-codeql-code-scanning-with-your-existing-ci-system/running-codeql-runner-in-your-ci-system 
+
+version: 2.1
+jobs:
+  codeql:
+    docker:
+      - image: 'cimg/base:2021.05'
+    resource_class: xlarge # https://circleci.com/docs/2.0/configuration-reference/#docker-executor
+    steps:
+      - checkout # Checkout codebase
+      - run:
+          # OPTIONAL: Download CodeQL Runner
+          # The CodeQL Runner can either be download as part of the pipeline,
+          # or pre-downloaded and placed on the CI/CD build machine(s). If pre-downloading, replace ./codeql-runner-linux in subsequent stages with the absolute path to the download location.
+          name: Download CodeQL Runner
+          command: 'wget https://github.com/github/codeql-action/releases/latest/download/codeql-runner-linux'
+      - run:
+          name: Give CodeQL Runner executable access
+          command: 'chmod +x codeql-runner-linux'
+      - run:
+          # Initialize the CodeQL Runner
+          # Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token stored as pipeline variable
+          # Full documentation for init step: https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-codeql-code-scanning-in-your-ci-system#init
+          # In this example, the security-and-quality suite is used, which includes both security queries and code quality queries
+          name: Initialize CodeQL Runner
+          command: 'echo $GITHUB_TOKEN | ./codeql-runner-linux init --repository octo-org/example-repo-2 --github-url https://github.com --queries security-extended --github-auth-stdin'
+      - run:
+          # Set the generated environment variables so they are available for subsequent commands
+          # This script created as part of the ./codeql-runner-linux init step and referenced in init logs
+          name: Set CodeQL Runner BUILD environment variables # REMOVE this step if you are not scanning any compiled languages (ex. Java) and only scanning scripting languages (ex. JavaScript)
+          command: '. ${CIRCLE_WORKING_DIRECTORY}/codeql-runner/codeql-env.sh'
+      - run:
+          # Example 1: Use the AutoBuilder
+          # The CodeQL Runner comes with a sopfisticated AutoBuilder, which attempts to build the code based on files in the repository
+          # Full documentation for autobuild step: https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-codeql-code-scanning-in-your-ci-system#autobuild
+          name: Build codebase # REMOVE this step if you are not scanning any compiled languages (ex. Java) and only scanning scripting languages (ex. JavaScript)
+          command: ./codeql-runner-linux autobuild --language java
+          # Example 2: Providing manual build command
+          # Alternatively, we can run the build command to compile the code. In this example, we have a simple maven project with a pom.xml in the root of the repository, and a settings file in a subdirectory
+          # For Code Scanning purposes, we only need to compile the code. As such, we disable executing our test suite. This can be changed according to your needs      
+          # command: 'mvn clean install -DskipTests=true -s settings/settings.xml'   
+      # - run: 
+          # Optional step if you experience errors where CodeQL runner runs out of memory resources
+          # name: Tune malloc fragmentation threshold
+          # command: 'export MALLOC_MMAP_THRESHOLD_=131072'
+      - run:
+          # Analyze the snapshot database created as part of the build, by running the selected queries against it
+          # Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
+          # Full documentation for analyze step: https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-codeql-code-scanning-in-your-ci-system#analyze
+          # Once the analysis is done, the results will be uploaded to GitHub
+          # Specifying the --ram attribute puts a ceiling on memory resources used by CodeQL runner, use this if you experience errors where CodeQL runner runs out of memory resources
+          name: Analyze CodeQL database and send results to GitHub
+          command: 'echo $GITHUB_TOKEN | ./codeql-runner-linux analyze --repository octo-org/example-repo-2 --github-url https://github.com --commit $CIRCLE_SHA1 --ref refs/heads/main --github-auth-stdin'
+workflows:
+  version: 2
+  codeql-analysis:
+    jobs:
+      - codeql

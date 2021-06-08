@@ -1,4 +1,4 @@
-# This sample config.yml shows how to configure a CircleCI workflow to analyze a repository using the CodeQL Runner
+# This sample .travis.yml shows how to configure a TravisCI workflow to analyze a repository using the CodeQL Runner
 # The example assumes a simple Java application built using Maven
 
 # Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token stored as pipeline variable GITHUB_TOKEN

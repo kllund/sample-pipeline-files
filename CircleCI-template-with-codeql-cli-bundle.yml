@@ -16,7 +16,7 @@ jobs:
       - image: 'cimg/base:2021.05'
     resource_class: xlarge # https://circleci.com/docs/2.0/configuration-reference/#docker-executor
     steps:
-      - checkout # Checkout codebase
+      - checkout: { path: "my-app" } # checkout codebase in own directory, separate from codeql cli bundle so it does not analyze itself
       - node/install
       - run:
           # OPTIONAL: Download CodeQL CLI Bundle
@@ -39,7 +39,7 @@ jobs:
           # REF command: ''/path/to/cli/codeql database create --language=<lang> [--source-root=<dir>] [--threads=<num>] [--command=<command>] [--mode=<mode>] <options>... [--] <database>''
           command: |
             mkdir codeql-dbs
-            ./codeql/codeql database create ./codeql-dbs/repo-db --language=javascript
+            ./codeql/codeql database create ./codeql-dbs/repo-db --language=javascript --source-root=./my-app
       - run:
           # Analyze CodeQL Database
           # Analyze a CodeQL database, producing meaningful results in the context of the source code.

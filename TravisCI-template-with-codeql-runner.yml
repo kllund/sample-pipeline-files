@@ -6,22 +6,22 @@
 
 # GitHub Docs "Running CodeQL Runner in your CI system" - https://docs.github.com/en/code-security/secure-coding/using-codeql-code-scanning-with-your-existing-ci-system/running-codeql-runner-in-your-ci-system 
 
-language: node_js
-node_js:
-  - "7"
+language: java
+jdk: 
+  - oraclejdk15
 
 arch: amd64
 os: linux
 dist: focal
-
-cache: npm
 
 branches:
   only:
   - main
 
 install:
-  - npm i
+  - java --version
+  - ./mvnw clean install
+  - ./mvnw test
 
 script:
   # STEP 1 (OPTIONAL): Download CodeQL Runner

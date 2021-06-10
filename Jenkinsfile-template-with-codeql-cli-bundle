@@ -68,7 +68,7 @@ pipeline {
         stage('Upload results to GitHub') {
             steps {
                 sh '/path/to/cli/codeql github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>...'
-                // example: sh 'codeql  github upload --repository=my-org/my-repo --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718 --sarif=./temp/results-js.sarif --github-url=https://octodemo-enterprise.com/ --github-auth-stdin'
+                // example: sh 'codeql  github upload-results --repository=my-org/my-repo --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718 --sarif=./temp/results-js.sarif --github-url=https://octodemo-enterprise.com/ --github-auth-stdin'
             }
         }
 

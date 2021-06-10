@@ -36,7 +36,7 @@ stages:
                 targetType: inline
                 script: >
                     mkdir codeql
-                    cd codeql; wget "https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz" -outfile "codeql-bundle-win64.tar.gz"
+                    cd codeql; wget "https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-win64.tar.gz" -outfile "codeql-bundle-win64.tar.gz"
                     tar xvzf codeql-bundle-win64.tar.gz codeql
             }
         }

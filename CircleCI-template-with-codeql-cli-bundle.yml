@@ -25,7 +25,7 @@ jobs:
           # In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from https://github.com/github/codeql-action/releases.
           name: Download CodeQL CLI
           command: |
-            wget https://github.com/github/codeql-action/releases/download/codeql-bundle-20210430/codeql-bundle-linux64.tar.gz
+            wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz
             tar xvzf codeql-bundle-linux64.tar.gz 
             cd codeql && chmod +x codeql
           # Make a note of the current directory here and use that for /path/to/cli in subsequent stages

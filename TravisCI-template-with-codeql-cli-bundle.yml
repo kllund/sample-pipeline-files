@@ -29,7 +29,7 @@ script:
   # or pre-downloaded and placed on the CI/CD build machine(s). If pre-downloading, replace /path/to/cli in subsequent stages with the absolute path to the download location.
   # In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from https://github.com/github/codeql-action/releases.
   - cd $HOME # Change to home directory to download CLI because if you unzip CodeQL CLI Bundle inside the source directory ($TRAVIS_BUILD_DIR) where repo is cloned it will analyze itself
-  - wget https://github.com/github/codeql-action/releases/download/codeql-bundle-20210430/codeql-bundle-linux64.tar.gz
+  - wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz
   - tar xzf codeql-bundle-linux64.tar.gz 
   - cd codeql && chmod +x codeql && cd ..
   # STEP 2: Create CodeQL Database

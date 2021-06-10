@@ -27,7 +27,7 @@ pipeline {
         stage('Download CodeQL CLI Bundle') {
             steps {
                 sh 'mkdir codeql'
-                sh 'cd codeql && wget https://github.com/github/codeql-action/releases/download/codeql-bundle-20210430/codeql-bundle-linux64.tar.gz'
+                sh 'cd codeql && wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz'
                 sh 'tar xvzf codeql-bundle-linux64.tar.gz codeql'
                 sh 'cd codeql && chmod +x codeql'
                 // Make a note of the current directory here and use that for /path/to/cli in subsequent stages

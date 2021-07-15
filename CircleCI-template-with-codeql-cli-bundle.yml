@@ -51,17 +51,27 @@ jobs:
           command: |
             cd codeql && mkdir temp
             ./codeql database analyze ../codeql-dbs/repo-db javascript-code-scanning.qls --format=sarif-latest --output=./temp/results-js.sarif                      
-      - run:
-          # Uploads a SARIF file to GitHub code scanning.
-          # For context, please see https://docs.github.com/en/rest/reference/code-scanning#upload-an-analysis-as-sarif-data
-          # A GitHub Apps token or personal access token must be set. For best security practices, it is recommended to set the --github-auth-stdin flag and pass the token to the command through standard input. Alternatively, the GITHUB\_TOKEN environment variable can be set.
-          # This token must have the security\_events scope.
-          # Documentation for creating GitHub Apps or Personal Access Tokens are available here: https:#docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
-          # Full documentation for github upload-results step: https://codeql.github.com/docs/codeql-cli/manual/github-upload-results/
-          # Upload results to GitHub
-          name: Upload results to GitHub
-          # REF command: '/path/to/cli/codeql github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>...'
-          command: 'echo $GITHUB_TOKEN | ./codeql/codeql github upload-results --repository=org/example-app --ref=refs/heads/main --commit=$CIRCLE_SHA1 --sarif=./codeql/temp/results-js.sarif --github-url=https://github.com/ --github-auth-stdin'
+      
+      # Upload results to GitHub
+
+      # Uploads a SARIF file to GitHub code scanning.
+      # For context, please see https://docs.github.com/en/rest/reference/code-scanning#upload-an-analysis-as-sarif-data
+      # A GitHub Apps token or personal access token must be set. For best security practices, it is recommended to set the --github-auth-stdin flag and pass the token to the command through standard input. Alternatively, the GITHUB\_TOKEN environment variable can be set.
+      # This token must have the security\_events scope.
+      # Documentation for creating GitHub Apps or Personal Access Tokens are available here: https:#docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
+      # Full documentation for github upload-results step: https://codeql.github.com/docs/codeql-cli/manual/github-upload-results/
+      # REF command: '/path/to/cli/codeql github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>...'
+      
+      # Since CircleCI does not track the github event reference in a single variable, we need to do an if/else to push right context back for pull requests vs branch commits
+      - when: 
+          condition: ${CIRCLE_PULL_REQUEST}
+          steps:
+            - run: 'echo $GITHUB_TOKEN | ./codeql/codeql github upload-results --repository=org/example-app --ref=refs/pull/${CIRCLE_PULL_REQUEST##*/}/head --commit=$CIRCLE_SHA1 --sarif=./codeql/temp/results-js.sarif --github-url=https://github.com/ --github-auth-stdin'
+      - unless: 
+          condition: ${CIRCLE_PULL_REQUEST}
+          steps: 
+            - run: 'echo $GITHUB_TOKEN | ./codeql/codeql github upload-results --repository=org/example-app --ref=refs/heads/${CIRCLE_BRANCH} --commit=$CIRCLE_SHA1 --sarif=./codeql/temp/results-js.sarif --github-url=https://github.com/ --github-auth-stdin'
+
 workflows:
   version: 2
   codeql-analysis:

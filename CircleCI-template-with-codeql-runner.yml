@@ -1,3 +1,16 @@
+██████╗ ███████╗██████╗ ██████╗ ███████╗ ██████╗ █████╗ ████████╗███████╗██████╗ 
+██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗╚══██╔══╝██╔════╝██╔══██╗
+██║  ██║█████╗  ██████╔╝██████╔╝█████╗  ██║     ███████║   ██║   █████╗  ██║  ██║
+██║  ██║██╔══╝  ██╔═══╝ ██╔══██╗██╔══╝  ██║     ██╔══██║   ██║   ██╔══╝  ██║  ██║
+██████╔╝███████╗██║     ██║  ██║███████╗╚██████╗██║  ██║   ██║   ███████╗██████╔╝
+╚═════╝ ╚══════╝╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═════╝ 
+                                                                                 
+The CodeQL Runner has been deprecated as of version 2.6.2 of the CodeQL CLI.
+All functionality is now natively available in the CodeQL CLI.
+Please use the CodeQL CLI Bundle instead of the CodeQL Runner.
+
+#################################################################################
+
 # This sample config.yml shows how to configure a CircleCI workflow to analyze a repository using the CodeQL Runner
 # The example assumes a simple Java application built using Maven
 

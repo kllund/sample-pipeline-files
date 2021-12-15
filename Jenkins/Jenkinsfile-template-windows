@@ -1,5 +1,6 @@
 /* 
     This sample Jenkinsfile shows how to configure a Jenkins pipeline to analyze a repository using the CodeQL CLI bundle
+    This example assumes a Windows environment
 */
 
 pipeline {
@@ -68,7 +69,7 @@ pipeline {
         stage('Upload results to GitHub') {
             steps {
                 sh "\path\to\cli\codeql.exe github upload-results --sarif=<file> [--github-auth-stdin] [--github-url=<url>] [--repository=<repository-name>] [--ref=<ref>] [--commit=<commit>] [--checkout-path=<path>] <options>..."
-                // example: sh "..\codeql\codeql.exe github upload-results --sarif=.\temp\results-js.sarif --github-auth-stdin --github-url=https://octodemo-enterprise.com/ --repository=my-org/my-repo --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718"
+                // example: sh "..\codeql\codeql.exe github upload-results --sarif=.\temp\results-js.sarif --github-auth-stdin --github-url=https://github.com/ --repository=octo-org/example-repo-2 --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718"
             }
         }
 

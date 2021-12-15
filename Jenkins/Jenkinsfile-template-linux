@@ -1,0 +1,79 @@
+/* 
+    This sample Jenkinsfile shows how to configure a Jenkins pipeline to analyze a repository using the CodeQL CLI bundle
+*/
+
+pipeline {
+
+    agent { label 'run-codeql-analysis' }
+
+    environment {
+        ...
+    }
+
+    options {
+        ...
+    }
+
+    stages {
+        // Clone repository
+        stage('Clone Repository') {
+            git url: 'https://github.com/octo-org/example-repo-2.git'
+        }    
+
+        // OPTIONAL: Download CodeQL CLI Bundle
+        // The CodeQL bundle (containing the CodeQL CLI as well as the pre-compiled CodeQL Query Suites, which is recommended for CI/CD integration) can either be download as part of the pipeline,
+        // or pre-downloaded and placed on the CI/CD build machine(s). If pre-downloading, replace /path/to/cli in subsequent stages with the absolute path to the download location.
+        // In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from https://github.com/github/codeql-action/releases.
+        stage('Download CodeQL CLI Bundle') {
+            steps {
+                sh "wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz -O ../codeql-bundle-linux64.tar.gz"
+                sh "tar xzvf ../codeql-bundle-linux64.tar.gz -C ../"
+                sh "rm ../codeql-bundle-linux64.tar.gz"
+                sh "export PATH=$(cd ..; pwd)/codeql:$PATH"
+            }
+        }
+
+        // Create CodeQL Database
+        // Create a CodeQL database for a source tree that can be analyzed using one of the CodeQL products.
+        // Note that if the --command flag is omitted for compiled languages, the AutoBuilder will be used. For complex build instructions, consider placing build commands inside a script
+        // and pass that to --command, or use indirect build tracing (aka. "sandwich mode").
+        // Full documentation for database create step: https://codeql.github.com/docs/codeql-cli/manual/database-create/
+        stage('Create CodeQL Database') {
+            steps {
+                sh "/path/to/cli/codeql database create [--language=<lang>[,<lang>...]] [--github-auth-stdin] [--github-url=<url>] [--source-root=<dir>] [--threads=<num>] [--ram=<MB>] [--command=<command>] [--mode=<mode>] [--extractor-option=<extractor-option-name=value>] <options>... -- <database>"
+                // example: sh "../codeql/codeql database create /codeql-dbs/repo-db --language=javascript --source-root /checkouts/my-repo"
+            }
+        }
+
+
+        // Analyze CodeQL Database
+        // Analyze a CodeQL database, producing meaningful results in the context of the source code.
+        // Run a query suite (or some individual queries) against a CodeQL database, producing results, styled as alerts or paths, in SARIF or another interpreted format.
+        // Note that the suite argument can accept one of the pre-compiled, out-of-the-box query suites: code-scanning, security-extended, or security-and-quality
+        // Full documentation for database analyze step: https://codeql.github.com/docs/codeql-cli/manual/database-analyze/
+        stage('Analyze CodeQL Database') {
+            steps {
+                sh "/path/to/cli/codeql database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... -- <database> <query|dir|suite>..."
+                // example: sh "../codeql/codeql database analyze /codeql-dbs/repo-db javascript-security-and-quality.qls --format=sarif-latest --output=./temp/results-js.sarif"              
+            }
+        }
+
+        // Upload results to GitHub
+        // Uploads a SARIF file to GitHub code scanning.
+        // For context, please see https://docs.github.com/en/rest/reference/code-scanning#upload-an-analysis-as-sarif-data
+        // A GitHub Apps token or personal access token must be set. For best security practices, it is recommended to set the --github-auth-stdin flag and pass the token to the command through standard input. Alternatively, the GITHUB\_TOKEN environment variable can be set.
+        // This token must have the security\_events scope.
+        // Documentation for creating GitHub Apps or Personal Access Tokens are available here: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
+        // Full documentation for github upload-results step: https://codeql.github.com/docs/codeql-cli/manual/github-upload-results/
+        stage('Upload results to GitHub') {
+            steps {
+                sh "/path/to/cli/codeql github upload-results --sarif=<file> [--github-auth-stdin] [--github-url=<url>] [--repository=<repository-name>] [--ref=<ref>] [--commit=<commit>] [--checkout-path=<path>] <options>..."
+                // example: sh "../codeql/codeql github upload-results --sarif=./temp/results-js.sarif --github-auth-stdin --github-url=https://octodemo-enterprise.com/ --repository=my-org/my-repo --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718"
+            }
+        }
+
+        // Other stages go here
+
+    }
+
+}

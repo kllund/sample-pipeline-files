@@ -21,30 +21,30 @@ pipeline {
         }    
 
         // OPTIONAL: Download CodeQL CLI Bundle
-        // The CodeQL bundle (containing the CodeQL CLI as well as the pre-compiled CodeQL Query Suites, which is recommended for CI/CD integration) can either be download as par of the pipeline,
+        // The CodeQL bundle (containing the CodeQL CLI as well as the pre-compiled CodeQL Query Suites, which is recommended for CI/CD integration) can either be download as part of the pipeline,
         // or pre-downloaded and placed on the CI/CD build machine(s). If pre-downloading, replace /path/to/cli in subsequent stages with the absolute path to the download location.
         // In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from https://github.com/github/codeql-action/releases.
         stage('Download CodeQL CLI Bundle') {
             steps {
-                sh 'mkdir codeql'
-                sh 'cd codeql && wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz'
-                sh 'tar xvzf codeql-bundle-linux64.tar.gz codeql'
-                sh 'cd codeql && chmod +x codeql'
-                // Make a note of the current directory here and use that for /path/to/cli in subsequent stages
-                // You can add the extracted codeql bundle to your PATH. Ex: PATH=/path/to/cli:$PATH
+                sh "wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-win64.tar.gz -O ..\codeql-bundle-win64.tar.gz"
+                sh "tar xzvf ..\codeql-bundle-win64.tar.gz -C ..\"
+                sh "del ..\codeql-bundle-win64.tar.gz"
+                sh "cd ..\; set PATH=%cd%\codeql;%PATH%"
             }
         }
 
         // Create CodeQL Database
         // Create a CodeQL database for a source tree that can be analyzed using one of the CodeQL products.
-        // Note that if the --command flag is omitted for compiled languages, the AutoBuilder will be used.
+        // Note that if the --command flag is omitted for compiled languages, the AutoBuilder will be used. For complex build instructions, consider placing build commands inside a script
+        // and pass that to --command, or use indirect build tracing (aka. "sandwich mode").
         // Full documentation for database create step: https://codeql.github.com/docs/codeql-cli/manual/database-create/
         stage('Create CodeQL Database') {
             steps {
-                sh '/path/to/cli/codeql database create --language=<lang> [--source-root=<dir>] [--threads=<num>] [--command=<command>] [--mode=<mode>] <options>... [--] <database>'
-                // example: sh 'codeql database create /codeql-dbs/repo-db --language=javascript --source-root /checkouts/my-repo'             
+                sh "\path\to\cli\codeql.exe database create [--language=<lang>[,<lang>...]] [--github-auth-stdin] [--github-url=<url>] [--source-root=<dir>] [--threads=<num>] [--ram=<MB>] [--command=<command>] [--mode=<mode>] [--extractor-option=<extractor-option-name=value>] <options>... -- <database>"
+                // example: sh "..\codeql\codeql.exe database create \codeql-dbs\repo-db --language=javascript --source-root \checkouts\my-repo"
             }
         }
+
 
         // Analyze CodeQL Database
         // Analyze a CodeQL database, producing meaningful results in the context of the source code.
@@ -53,8 +53,8 @@ pipeline {
         // Full documentation for database analyze step: https://codeql.github.com/docs/codeql-cli/manual/database-analyze/
         stage('Analyze CodeQL Database') {
             steps {
-                sh '/path/to/cli/codeql database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... [--] <database> <query|dir|suite>...'
-                // example: sh 'codeql database analyze /codeql-dbs/repo-db javascript-security-and-quality.qls --format=sarif-latest --output=./temp/results-js.sarif                 
+                sh "\path\to\cli\codeql.exe database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... -- <database> <query|dir|suite>..."
+                // example: sh "..\codeql\codeql.exe database analyze \codeql-dbs\repo-db javascript-security-and-quality.qls --format=sarif-latest --output=.\temp\results-js.sarif"              
             }
         }
 
@@ -67,8 +67,8 @@ pipeline {
         // Full documentation for github upload-results step: https://codeql.github.com/docs/codeql-cli/manual/github-upload-results/
         stage('Upload results to GitHub') {
             steps {
-                sh '/path/to/cli/codeql github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>...'
-                // example: sh 'codeql  github upload-results --repository=my-org/my-repo --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718 --sarif=./temp/results-js.sarif --github-url=https://octodemo-enterprise.com/ --github-auth-stdin'
+                sh "\path\to\cli\codeql.exe github upload-results --sarif=<file> [--github-auth-stdin] [--github-url=<url>] [--repository=<repository-name>] [--ref=<ref>] [--commit=<commit>] [--checkout-path=<path>] <options>..."
+                // example: sh "..\codeql\codeql.exe github upload-results --sarif=.\temp\results-js.sarif --github-auth-stdin --github-url=https://octodemo-enterprise.com/ --repository=my-org/my-repo --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718"
             }
         }
 

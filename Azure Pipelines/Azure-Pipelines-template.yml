@@ -1,4 +1,5 @@
 # This sample YAML file shows how to configure an Azure Pipeline to analyze a repository using the CodeQL CLI Bundle
+# This example assumes a Windows environment
 
 trigger:
     branches:
@@ -15,7 +16,7 @@ trigger:
       repositories:
       - repository: templates
           type: github
-          name: octo-org/MyDevOpsTemplates
+          name: octo-org/example-repo-2
           endpoint: octo-org
 
 stages:
@@ -27,28 +28,30 @@ stages:
         steps:
 
         # OPTIONAL: Download CodeQL CLI Bundle
-        # The CodeQL bundle (containing the CodeQL CLI as well as the pre-compiled CodeQL Query Suites, which is recommended for CI/CD integration) can either be download as par of the pipeline,
-        # or pre-downloaded and placed on the CI/CD build machine(s). If pre-downloading, replace %CodeQLBundle% in subsequent stages with the absolute path to the download location.
+        # The CodeQL bundle (containing the CodeQL CLI as well as the pre-compiled CodeQL Query Suites, which is recommended for CI/CD integration) can either be download as part of the pipeline,
+        # or pre-downloaded and placed on the CI/CD build machine(s). If pre-downloading, replace \path\to\cli in subsequent stages with the absolute path to the download location.
         # In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from https://github.com/github/codeql-action/releases.
         - task: PowerShell@1
             displayName: Download CodeQL CLI Bundle
             inputs:
                 targetType: inline
                 script: >
-                    mkdir codeql
-                    cd codeql; wget "https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-win64.tar.gz" -outfile "codeql-bundle-win64.tar.gz"
-                    tar xvzf codeql-bundle-win64.tar.gz codeql
+                    wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-win64.tar.gz -O ..\codeql-bundle-win64.tar.gz
+                    tar xzvf ..\codeql-bundle-win64.tar.gz -C ..\
+                    del ..\codeql-bundle-win64.tar.gz
+                    cd ..\; set PATH=%cd%\codeql;%PATH%
             }
         }
 
         # Create CodeQL Database
         # Create a CodeQL database for a source tree that can be analyzed using one of the CodeQL products.
-        # Note that if the --command flag is omitted for compiled languages, the AutoBuilder will be used.
+        # Note that if the --command flag is omitted for compiled languages, the AutoBuilder will be used. For complex build instructions, consider placing build commands inside a script
+        # and pass that to --command, or use indirect build tracing (aka. "sandwich mode").
         # Full documentation for database create step: https://codeql.github.com/docs/codeql-cli/manual/database-create/
         - task: CmdLine@1
             displayName: Create CodeQL Database
             inputs:
-                script: "%CodeQLBundle%\\codeql\\codeql.exe database create --language=<lang> [--source-root=<dir>] [--threads=<num>] [--command=<command>] [--mode=<mode>] <options>... [--] <database>"
+                script: "codeql database create [--language=<lang>[,<lang>...]] [--github-auth-stdin] [--github-url=<url>] [--source-root=<dir>] [--threads=<num>] [--ram=<MB>] [--command=<command>] [--mode=<mode>] [--extractor-option=<extractor-option-name=value>] <options>... -- <database>"
 
         # Analyze CodeQL Database
         # Analyze a CodeQL database, producing meaningful results in the context of the source code.
@@ -58,7 +61,7 @@ stages:
         - task: CmdLine@2
             displayName: Analyze CodeQL Database
             inputs:
-                script: "%CodeQLBundle%\\codeql\\codeql.exe database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... [--] <database> <query|dir|suite>..."
+                script: "codeql database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... -- <database> <query|dir|suite>..."
 
         # Upload results to GitHub
         # Uploads a SARIF file to GitHub code scanning.
@@ -70,6 +73,6 @@ stages:
         - task: CmdLine@3
             displayName: Upload results to GitHub
             inputs:
-                script: "%CodeQLBundle%\\codeql\\codeql.exe github upload-results --repository=<repository-name> --ref=<ref> --commit=<commit> --sarif=<file> [--github-auth-stdin] [--checkout-path=<path>] [--github-url=<url>] <options>..."
+                script: "codeql github upload-results --sarif=<file> [--github-auth-stdin] [--github-url=<url>] [--repository=<repository-name>] [--ref=<ref>] [--commit=<commit>] [--checkout-path=<path>] <options>..."
 
         # Other tasks go here

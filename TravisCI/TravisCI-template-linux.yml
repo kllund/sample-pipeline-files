@@ -1,5 +1,5 @@
 # This sample .travis.yml shows how to configure a TravisCI workflow to analyze a repository using the CodeQL CLI
-# The example assumes a simple javascript application built using node
+# The example assumes a simple javascript application built using node on Linux
 
 # Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token stored as pipeline variable GITHUB_TOKEN
 # Currently this workflow runs on commit, you will need to setup triggers for workflow to run on certain branches, PR, scheduled, etc.
@@ -32,6 +32,7 @@ script:
   - wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz
   - tar xzf codeql-bundle-linux64.tar.gz 
   - cd codeql && chmod +x codeql && cd ..
+  
   # STEP 2: Create CodeQL Database
   # Create a CodeQL database for a source tree that can be analyzed using one of the CodeQL products.
   # Note that if the --command flag is omitted for compiled languages, the AutoBuilder will be used.

@@ -1,5 +1,5 @@
 # This sample config.yml shows how to configure a CircleCI workflow to analyze a repository using the CodeQL CLI
-# The example assumes a simple javascript application built using node on Linux
+# The example assumes a simple javascript application built using node on Windows
 
 # Assumes an existing GitHub Apps or personal access token: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token stored as pipeline variable GITHUB_TOKEN
 # Currently this workflow runs on commit, you will need to setup triggers for workflow to run on certain branches, PR, scheduled, etc.

@@ -30,7 +30,7 @@ stages:
         # OPTIONAL: Download CodeQL CLI Bundle
         # The CodeQL bundle (containing the CodeQL CLI as well as the pre-compiled CodeQL Query Suites, which is recommended for CI/CD integration) can either be download as part of the pipeline,
         # or pre-downloaded and placed on the CI/CD build machine(s). If pre-downloading, replace \path\to\cli in subsequent stages with the absolute path to the download location.
-        # In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from https://github.com/github/codeql-action/releases.
+        # In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from https://github.com/github/codeql-action/releases, extract it and place it on the PATH.
         - task: PowerShell@1
             displayName: Download CodeQL CLI Bundle
             inputs:
@@ -51,7 +51,7 @@ stages:
         - task: CmdLine@1
             displayName: Create CodeQL Database
             inputs:
-                script: "codeql database create [--language=<lang>[,<lang>...]] [--github-auth-stdin] [--github-url=<url>] [--source-root=<dir>] [--threads=<num>] [--ram=<MB>] [--command=<command>] [--mode=<mode>] [--extractor-option=<extractor-option-name=value>] <options>... -- <database>"
+                script: "codeql database create --language=javascript --github-auth-stdin --github-url=https://github.com/ --source-root \checkouts\my-repo db"
 
         # Analyze CodeQL Database
         # Analyze a CodeQL database, producing meaningful results in the context of the source code.
@@ -61,7 +61,7 @@ stages:
         - task: CmdLine@2
             displayName: Analyze CodeQL Database
             inputs:
-                script: "codeql database analyze --format=<format> --output=<output> [--threads=<num>] [--ram=<MB>] <options>... -- <database> <query|dir|suite>..."
+                script: "codeql database analyze --format=sarif-latest --output=.\temp\results-js.sarif db javascript-security-and-quality.qls"
 
         # Upload results to GitHub
         # Uploads a SARIF file to GitHub code scanning.
@@ -73,6 +73,6 @@ stages:
         - task: CmdLine@3
             displayName: Upload results to GitHub
             inputs:
-                script: "codeql github upload-results --sarif=<file> [--github-auth-stdin] [--github-url=<url>] [--repository=<repository-name>] [--ref=<ref>] [--commit=<commit>] [--checkout-path=<path>] <options>..."
+                script: "codeql github upload-results --sarif=.\temp\results-js.sarif --github-auth-stdin --github-url=https://github.com/ --repository=octo-org/example-repo-2 --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718"
 
         # Other tasks go here

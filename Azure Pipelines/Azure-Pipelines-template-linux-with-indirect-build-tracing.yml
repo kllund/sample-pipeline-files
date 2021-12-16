@@ -1,0 +1,105 @@
+# This sample YAML file shows how to configure an Azure Pipeline to analyze a repository using the CodeQL CLI Bundle
+# This example assumes a Linux environment and takes advantage of indirect build tracing ("sandwich mode") to leverage an existing set of build command
+
+trigger:
+    branches:
+        include:
+        - '*'
+    paths:
+        exclude:
+        - test/*
+        - doc/*
+        - lib/*
+        include:
+        - src/*
+  resources:
+      repositories:
+      - repository: templates
+          type: github
+          name: octo-org/example-repo-2
+          endpoint: octo-org
+
+stages:
+- stage: __default
+    jobs:
+    - job: Job
+        workspace:
+            clean: all
+        steps:
+
+        # OPTIONAL: Download CodeQL CLI Bundle
+        # The CodeQL bundle (containing the CodeQL CLI as well as the pre-compiled CodeQL Query Suites, which is recommended for CI/CD integration) can either be download as part of the pipeline,
+        # or pre-downloaded and placed on the CI/CD build machine(s). In this example, we download the latest CLI bundle (at time of writing) as part of the pipeline from
+        # https://github.com/github/codeql-action/releases, extract it and place it on the PATH.
+        - task: ShellScript@1
+            displayName: Download CodeQL CLI Bundle
+            inputs:
+                targetType: inline
+                script: >
+                    wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz -O ../codeql-bundle-linux64.tar.gz
+                    tar xzvf ../codeql-bundle-linux64.tar.gz -C ../
+                    rm ../codeql-bundle-linux64.tar.gz
+                    export PATH=$(cd ..; pwd)/codeql:$PATH
+            }
+        }
+
+        # Initialize CodeQL
+        # Create a skeleton structure for a CodeQL database that doesn’t have a raw QL dataset yet, but is ready for running extractor steps
+        # Prior to running any build commands, the generated scripts containing environment variables must be sourced.
+        # Full documentation for database init step: https://codeql.github.com/docs/codeql-cli/manual/database-init/
+        - task: ShellScript@2
+            displayName: Initialize CodeQL database
+            inputs:
+                # Assumes the source code is checked out to the current working directory.
+                # Creates a database at `<current working directory>/db`.
+                script: "codeql database init --language java --source-root . --begin-tracing db"
+
+        # Source environment variables
+        # Read the generated environment variables and values, and set them so they are available for subsequent commands in the build pipeline. This is done in PowerShell in this example.
+        - task: ShellScript@3
+           displayName: Set CodeQL environment variables
+           inputs:
+              targetType: inline
+              script: ". db/temp/tracingEnvironment/start-tracing.sh"
+
+        # Run build commands
+        # In this example, we have a simple maven project with a pom.xml in the root of the repository, and a settings file in a subdirectory
+        # For Code Scanning purposes, we only need to compile the code. As such, we disable executing our test suite. This can be changed according to your needs    
+        - task: ShellScript@4
+           displayName: Run build commands
+           inputs:
+              targetType: inline
+              script: "mvn clean install -DskipTests=true -s settings/settings.xml"
+
+        # Finalize CodeQL Database
+        # Finalize a database that was created with codeql database init and subsequently seeded with analysis data using codeql database trace-command.
+        # This needs to happen before the new database can be queried.
+        # Full documentation for database finalize step: https://codeql.github.com/docs/codeql-cli/manual/database-finalize/
+        - task: ShellScript@5
+           displayName: Finalize CodeQL database
+           inputs:
+              script: 'codeql database finalize db'
+
+        # Analyze CodeQL Database
+        # Analyze a CodeQL database, producing meaningful results in the context of the source code.
+        # Run a query suite (or some individual queries) against a CodeQL database, producing results, styled as alerts or paths, in SARIF or another interpreted format.
+        # Note that the suite argument can accept one of the pre-compiled, out-of-the-box query suites: code-scanning, security-extended, or security-and-quality
+        # Full documentation for database analyze step: https://codeql.github.com/docs/codeql-cli/manual/database-analyze/
+        - task: ShellScript@6
+            displayName: Analyze CodeQL Database
+            inputs:
+                script: "codeql database analyze db java-security-and-quality.qls --format=sarif-latest --output=./temp/results-java.sarif"
+
+        # Upload results to GitHub
+        # Uploads a SARIF file to GitHub code scanning.
+        # For context, please see https://docs.github.com/en/rest/reference/code-scanning#upload-an-analysis-as-sarif-data
+        # A GitHub Apps token or personal access token must be set. For best security practices, it is recommended to set the --github-auth-stdin flag and pass the token to the command through standard input. Alternatively, the GITHUB\_TOKEN environment variable can be set.
+        # This token must have the security\_events scope.
+        # Documentation for creating GitHub Apps or Personal Access Tokens are available here: https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token
+        # Full documentation for github upload-results step: https://codeql.github.com/docs/codeql-cli/manual/github-upload-results/
+        - task: ShellScript@7
+            displayName: Upload results to GitHub
+            inputs:
+                script: "codeql github upload-results --sarif=./temp/results-java.sarif --github-auth-stdin --github-url=https://github.com/ --repository=octo-org/example-repo-2 --ref=refs/heads/main --commit=deb275d2d5fe9a522a0b7bd8b6b6a1c939552718"
+
+        # Other tasks go here

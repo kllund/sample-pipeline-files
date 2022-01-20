@@ -1,0 +1,46 @@
+name: CodeQL
+kind: pipeline
+type: docker
+
+steps:
+- name: analysis
+  # This container is maintained by @GeekMasher (GitHub staff).
+  # It is recommended to fork and maintain an internal version of this image or
+  #  have an internal version.
+  image: ghcr.io/geekmasher/codeql-docker:main
+  # CodeQL need to write its database to disk and this is an easy way to support
+  #  that.
+  user: root
+  environment:
+    # Repository org/name 
+    GITHUB_REPOSITORY: octodemo/advanced-security-python
+    # Set the language that CodeQL will Analyse
+    CODEQL_LANGUAGE: python
+    # You will need an access token to push the SARIF file into GitHub
+    GITHUB_TOKEN:
+      from_secret: GITHUB_TOKEN
+
+  commands:
+    # Test CodeQL is present in the container and what version is running
+    - codeql --version
+
+    # Initialize and Create the CodeQL Database
+    - codeql database create --language="$CODEQL_LANGUAGE" .codeql-database
+
+    # Here is where for compiled languages you will need the build command
+    #  supplied.
+    # - echo "Manual build command here..."
+
+    # Analyse the code inside the database and generate the SARIF output.
+    - codeql database analyze
+        --format="sarif-latest"
+        --output=".codeql-results.sarif"
+        .codeql-database $CODEQL_LANGUAGE-code-scanning.qls
+    
+    # Uploading the results to GitHub.
+    - codeql github upload-results
+        -r "$GITHUB_REPOSITORY"
+        -g "https://github.com"
+        -f "refs/heads/$(git rev-parse --abbrev-ref HEAD)"
+        -c "$(git rev-parse HEAD)"
+        -s ".codeql-results.sarif"

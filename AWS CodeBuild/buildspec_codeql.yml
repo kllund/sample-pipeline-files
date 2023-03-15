@@ -1,0 +1,54 @@
+
+version: 0.2
+env:
+  git-credential-helper: yes
+  exported-variables:
+    - PROJECT_NAME
+    - PROJECT_ROOT_DIRECTORY
+    - GITHUB_ORG
+    - GIT_REPO_NAME
+    - CODEQLDB
+    - CODEQL_LANG
+    - UPLOAD_TOKEN
+    - COMMIT_ID
+  # variables:
+  #   GITHUB_ORG: ${GITHUB_ORG}
+  #   GIT_REPO_NAME: "${GIT_REPO_NAME}"
+  #   CODEQLDB: "${CODEQLDB}"
+  #   CODEQL_LANG: "${CODEQL_LANG}"
+  #   UPLOAD_TOKEN: "${UPLOAD_TOKEN}"
+  #   COMMIT_ID: "${COMMIT_ID}"
+phases:
+  install:
+    commands:
+      - echo "Entered the CodeQL CLI install phase..."
+      - echo "Installing the CodeQL CLI"
+      - (cd /opt; wget https://github.com/github/codeql-action/releases/latest/download/codeql-bundle-linux64.tar.gz && tar -xvzf ./codeql-bundle-linux64.tar.gz)
+      -  export PATH=/opt/codeql:$PATH
+      - echo "testing codeql cli installation by codeql resolve qlpacks"
+      - codeql resolve qlpacks
+  pre_build:
+    commands:
+      - echo "Entered the pre_build phase..." 
+      - echo "Create codeql database sub directory"
+      - mkdir -p /${CODEQLDB}/${GIT_REPO_NAME}
+      - echo  "create codeql database..."
+      - codeql database create /${CODEQLDB}/${GIT_REPO_NAME} --language=${CODEQL_LANG}  --command "<YOUR BUILD COMMAND>" --source-root $CODEBUILD_SRC_DIR
+  build:
+    on-failure: ABORT
+    commands:
+      - echo "Entered the Build phase..."
+      - echo Build started on `date`
+
+      - echo `pwd`
+      - ls -lart
+
+      #running codeql analysis
+      - echo "Running CodeQL Analysis"
+      - codeql database analyze /${CODEQLDB}/${GIT_REPO_NAME} --sarif-category=${CODEQL_LANG} --format=sarifv2.1.0 --output=/tmp/${GIT_REPO_NAME}.sarif --verbose
+      - sleep 60
+      - echo "Uploading CodeQL Sarif File to GitHub"
+      - (codeql github upload-results --repository=${GITHUB_ORG}/${GIT_REPO_NAME} --ref=refs/heads/main --commit=${COMMIT_ID} --sarif=/tmp/${GIT_REPO_NAME}.sarif --github-url=https://github.com --github-auth-stdin)
+artifacts:
+    files:
+      - '**/*'

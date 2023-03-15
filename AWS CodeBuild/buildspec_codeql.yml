@@ -11,13 +11,6 @@ env:
     - CODEQL_LANG
     - UPLOAD_TOKEN
     - COMMIT_ID
-  # variables:
-  #   GITHUB_ORG: ${GITHUB_ORG}
-  #   GIT_REPO_NAME: "${GIT_REPO_NAME}"
-  #   CODEQLDB: "${CODEQLDB}"
-  #   CODEQL_LANG: "${CODEQL_LANG}"
-  #   UPLOAD_TOKEN: "${UPLOAD_TOKEN}"
-  #   COMMIT_ID: "${COMMIT_ID}"
 phases:
   install:
     commands:

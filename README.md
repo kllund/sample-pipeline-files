@@ -1,3 +1,6 @@
+# ATTENTION
+This repo has been archived. For updated versions, please visit https://github.com/advanced-security/sample-codeql-pipeline-config
+
 # Sample pipeline files for popular CI/CD systems
 This repository contains pipeline files for various CI/CD systems, illustrating how to integrate the CodeQL CLI Bundle for Automated Code Scanning.
 
